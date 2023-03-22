@@ -1,5 +1,4 @@
 from pyproj import Transformer, CRS
-from pyproj.crs import coordinate_system
 from decimal import Decimal
 import re
 
@@ -26,11 +25,13 @@ def dms2dec(degree, minutes, seconds):
 def init_argparse():
     import argparse
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser.epilog = "Convert between different CRS. Input can be in decimal, or DD*MM'SS.ss'' format."
     parser.add_argument('x', help='x coordinate')
     parser.add_argument('y', help='y coordinate')
     parser.add_argument('--src', '-s', default='epsg:2178', help='source CRS')
     parser.add_argument('--dst', '-d', default='epsg:4258', help='destination CRS')
-    parser.add_argument('--dst-dms', '-ddms', action=argparse.BooleanOptionalAction)
+    parser.add_argument('--dst-dms', '-ddms', action=argparse.BooleanOptionalAction,
+                        help='output CRS in degree, second, minute format if applicable')
     return parser
 
 def splitdms(data):
@@ -58,8 +59,12 @@ if __name__ == '__main__':
     print(f'Transforming from "{transformer.src_crs.name}" to "{transformer.dst_crs.name}"'
           f' with accuracy of {transformer.transformer.accuracy}')
     
-    if args.dst_dms and transformer.dst_crs.coordinate_system.name == 'ellipsoidal':
-        coordinates = list(map(lambda x: dms2string(*dec2dms(x)),
-            coordinates))
-    
-    print(f'Coordinates: {coordinates[0]}, {coordinates[1]}')
+    if transformer.dst_crs.coordinate_system.name == 'ellipsoidal':
+        if args.dst_dms:
+            coordinates = list(map(lambda x: dms2string(*dec2dms(x)),
+                coordinates))
+            print(f'Coordinates: {coordinates[0]}, {coordinates[1]}')
+        else:
+            print(f'Coordinates: {coordinates[0]:.10f}, {coordinates[1]:.10f}')
+    else:
+        print(f'Coordinates: {coordinates[0]}, {coordinates[1]}')
